@@ -7,67 +7,81 @@
 // @match        https://www.zhipin.com/job_detail/*
 // @match        https://www.zhipin.com/web/geek/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=zhipin.com
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @run-at       document-end
 // ==/UserScript==
 
-(async function() {
+(async function () {
 	'use strict';
 
 	const btn = document.querySelector('.btn-startchat')
 	let name = document.querySelector('.boss-info-attr')
 	let list = await getList()
-	console.log(list)
-	if(btn){
-		if(name){
+	GM_setValue('names', JSON.stringify(list))
+	if (btn) {
+		if (name) {
 			name = name.innerText
 			name = name.split(/[\s·]/)?.[0]
 
-			let hasChat = btn.innerText.trim()==='继续沟通' || list.find(i=>i===name)
-			if(hasChat){
-				list.push(name)
+			let hasChat = btn.innerText.trim() === '继续沟通' || list.find(i => i === name)
+			if (hasChat) {
+				addList(name)
 				let newBtn = document.createElement('a')
-				newBtn.className='btn'
-				newBtn.style= 'background:#f00;color:#fff;width:180px;'
-				newBtn.innerText ='该公司已经沟通过'
+				newBtn.className = 'btn'
+				newBtn.style = 'background:#f00;color:#fff;width:180px;'
+				newBtn.innerText = '该公司已经沟通过'
 
 				btn.parentElement.appendChild(newBtn)
 			}
-			btn.addEventListener('click',()=>{
-				list.push(name)
+			btn.addEventListener('click', () => {
+				addList(name)
 			})
 
 		}
 	}
 
-	if(location.href.startsWith('https://www.zhipin.com/web/geek')){
+	if (location.href.startsWith('https://www.zhipin.com/web/geek')) {
 		run();
-		const timer = setInterval(()=>{
+		const timer = setInterval(() => {
 			setInterval(timer)
 			run();
-		},5000)
+		}, 3000)
 	}
-	function run(){
+
+	function addList(item) {
+		list.push(item)
+		GM_setValue('names', JSON.stringify(list))
+	}
+
+	function getLocalList() {
+		return JSON.parse(GM_getValue('names') || '[]')
+	}
+
+	function run() {
 		let domList = document.querySelectorAll('.job-card-footer .boss-name')
 		domList = Array.from(domList)
-		domList.forEach(dom=>{
+		const list = getLocalList()
+		domList.forEach(dom => {
 			const value = dom.innerText.trim();
-			const has = list.find(i=>i===value);
-			if(has){
-				dom.style.color='red'
+			const has = list.find(i => i === value);
+			if (has) {
+				dom.style.color = 'red'
 				let span = dom.parentElement.querySelector('.yitoudi')
-				if(!span){
+				if (!span) {
 					span = document.createElement('span')
-					span.className="yitoudi"
-					span.style.color='red'
-					span.style.marginLeft='10px'
-					span.innerText ='(已投递)'
+					span.className = 'yitoudi'
+					span.style.color = 'red'
+					span.style.marginLeft = '10px'
+					span.innerText = '(已投递)'
 					dom.parentElement.appendChild(span)
 				}
 			}
 		})
 	}
 
-	async function getList(){
-		let res= await fetch('https://www.zhipin.com/wapi/zprelation/friend/geekFilterByLabel?labelId=0').then(res=>res.json())
-		return res.zpData.friendList.map(i=>i.brandName)
+	async function getList() {
+		let res = await fetch('https://www.zhipin.com/wapi/zprelation/friend/geekFilterByLabel?labelId=0').then(res => res.json())
+		return res.zpData.friendList.map(i => i.brandName)
 	}
 })();
